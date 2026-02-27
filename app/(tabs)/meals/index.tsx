@@ -223,6 +223,7 @@ const AddMealModal: React.FC<{
       name: name.trim(),
       meal_type: mealType,
       eaten_at: `${date}T${new Date().toTimeString().slice(0, 8)}`,
+      date,
       photo_uri: photoUri,
       items: validItems.map(i => ({ ...i, id: generateId() })),
       is_ai_estimated: validItems.some(i => i.source === 'estimated'),

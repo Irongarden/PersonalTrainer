@@ -375,20 +375,29 @@ export default function CoachScreen() {
       let receivedTemplate: TemplateSuggestion | null = null;
 
       if (COACH_ENDPOINT && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
-        const res = await fetch(COACH_ENDPOINT, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ message: content, context }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          reply = data.reply ?? 'Sorry, I could not generate a response.';
-          receivedTemplate = data.suggestedTemplate ?? null;
-        } else {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        try {
+          const res = await fetch(COACH_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ message: content, context }),
+            signal: controller.signal,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            reply = data.reply ?? 'Sorry, I could not generate a response.';
+            receivedTemplate = data.suggestedTemplate ?? null;
+          } else {
+            reply = generateHeuristicReply(content, { user_goals: profile?.coach_goals, recent_workouts: workoutsRes.data ?? [], recent_meals: [] });
+          }
+        } catch {
           reply = generateHeuristicReply(content, { user_goals: profile?.coach_goals, recent_workouts: workoutsRes.data ?? [], recent_meals: [] });
+        } finally {
+          clearTimeout(timeout);
         }
       } else {
         reply = generateHeuristicReply(content, { user_goals: profile?.coach_goals, recent_workouts: workoutsRes.data ?? [], recent_meals: [] });
@@ -405,11 +414,11 @@ export default function CoachScreen() {
       setMessages(prev => [...prev, assistantMsg]);
       if (receivedTemplate) setSuggestedTemplate(receivedTemplate);
 
-      // Save to DB
-      await supabase.from('coach_messages').insert([
+      // Fire-and-forget — don't block on DB insert
+      supabase.from('coach_messages').insert([
         { ...userMsg, user_id: user.id },
         { ...assistantMsg, user_id: user.id },
-      ]).select();
+      ]).then(() => {}).catch(() => {});
     } catch (err) {
       console.error('[Coach] Error:', err);
       setMessages(prev => [...prev, {

@@ -95,6 +95,7 @@ export default function TemplateEditorScreen() {
   // ── Load existing template if editing ──────────────────────
   const { isLoading: loadingTemplate } = useQuery({
     queryKey: ["template-edit", id],
+    retry: false,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("templates")
