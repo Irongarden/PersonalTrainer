@@ -157,6 +157,7 @@ export interface MealItem {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
+  source?: 'manual' | 'estimated';
 }
 
 export interface MacroTotals {

@@ -40,11 +40,13 @@ export const useMealsStore = create<MealsState>((set, get) => ({
     const date = get().selectedDate;
     set({ isLoading: true });
     try {
+      // Filter by eaten_at date range — avoids depending on a separate 'date' column
       const { data, error } = await supabase
         .from('meals')
         .select(`*, meal_items(*)`)
         .eq('user_id', userId)
-        .eq('date', date)
+        .gte('eaten_at', `${date}T00:00:00`)
+        .lte('eaten_at', `${date}T23:59:59`)
         .order('eaten_at', { ascending: true });
 
       if (error) throw error;
@@ -114,9 +116,8 @@ export const useMealsStore = create<MealsState>((set, get) => ({
         name: mealData.name,
         meal_type: mealData.meal_type,
         eaten_at: mealData.eaten_at,
-        date,
-        photo_uri: mealData.photo_uri,
-        is_ai_estimated: mealData.is_ai_estimated,
+        photo_uri: mealData.photo_uri ?? null,
+        is_ai_estimated: mealData.is_ai_estimated ?? false,
       });
       if (mealErr) throw mealErr;
 

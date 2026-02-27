@@ -218,21 +218,24 @@ const AddMealModal: React.FC<{
       return;
     }
     const validItems = items.filter(i => i.name.trim());
-    await addMeal({
-      user_id: userId,
-      name: name.trim(),
-      meal_type: mealType,
-      eaten_at: `${date}T${new Date().toTimeString().slice(0, 8)}`,
-      date,
-      photo_uri: photoUri,
-      items: validItems.map(i => ({ ...i, id: generateId() })),
-      is_ai_estimated: validItems.some(i => i.source === 'estimated'),
-    });
-    // Reset
-    setName('');
-    setPhotoUri(undefined);
-    setItems([]);
-    onClose();
+    try {
+      await addMeal({
+        user_id: userId,
+        name: name.trim(),
+        meal_type: mealType,
+        eaten_at: `${date}T${new Date().toTimeString().slice(0, 8)}`,
+        photo_uri: photoUri,
+        items: validItems.map(i => ({ ...i, id: generateId() })),
+        is_ai_estimated: validItems.some(i => i.source === 'estimated'),
+      });
+      // Reset on success
+      setName('');
+      setPhotoUri(undefined);
+      setItems([]);
+      onClose();
+    } catch (err: any) {
+      alertDialog('Save failed', err?.message ?? 'Could not save meal. Please try again.');
+    }
   };
 
   return (
